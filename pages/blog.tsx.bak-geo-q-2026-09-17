@@ -1,0 +1,181 @@
+import React from 'react'
+import Head from 'next/head'
+import { buildFaqJsonLd, buildHowToJsonLd } from '../lib/schema'
+import Layout from '../components/Layout'
+import { PRODUCT } from '../lib/product'
+import { geoPosts } from '../data/geoPosts'
+
+const GOOGLE = 'https://developers.google.com/search/docs'
+const OPENAI = 'https://openai.com/blog'
+
+const posts = [
+  {
+    slug: 'what-is-a-geo-content-brief',
+    title: 'What is a GEO-ready content brief?',
+    type: 'Definitional · FAQPage',
+    query: 'what is a geo content brief',
+    body: 'A GEO-ready content brief is a pre-write plan built for the ChatGPT / Perplexity era: an H2/H3 outline, the people-also-ask questions a buyer asks, the authoritative sources worth citing, and a one-line "answer hook" an AI engine can lift into its reply. It is the bridge between "I should write about X" and "this page is structured so an LLM can cite it." BriefKit generates that brief from a keyword or a competitor URL.',
+    refs: [GOOGLE, OPENAI],
+  },
+  {
+    slug: 'write-content-ai-engines-cite',
+    title: 'How to write content AI engines cite',
+    type: 'How-to · HowTo',
+    query: 'how to write content chatgpt perplexity cite',
+    body: 'Start from the questions buyers ask, not from your product features. Answer each one directly and early, cite named authoritative sources, and lead with a crisp sentence an AI can quote. The "answer hook" is that lead line — the part an engine is most likely to surface. BriefKit proposes the hook, the outline, and the questions so the draft is citable by structure, not luck.',
+    refs: [OPENAI, GOOGLE],
+  },
+  {
+    slug: 'geo-vs-seo-content',
+    title: 'GEO vs SEO content: what actually changes',
+    type: 'Definitional + examples',
+    query: 'geo vs seo content difference',
+    body: 'SEO content targets a ranked list with keywords and links. GEO content targets being the named, quoted source inside an AI answer — which means direct answers, citable sources, and a quotable hook matter more than keyword density. The two share fundamentals, but a GEO brief adds the answer hook and the source list an SEO outline usually omits.',
+    refs: [GOOGLE],
+  },
+  {
+    slug: 'content-brief-sources-authority',
+    title: 'Why citable sources belong in every brief',
+    type: 'How-to · HowTo',
+    query: 'why cite authoritative sources content',
+    body: 'An LLM is more likely to cite a page that itself cites named, authoritative sources — it can point readers to where the claim came from. A brief that lists 3–5 sources to cite turns a vague post into one an engine can attribute. The sources still need a human check: a suggestion is not a verified fact. BriefKit proposes sources; you confirm they are real and current.',
+    refs: [GOOGLE, OPENAI],
+  },
+  {
+    slug: 'briefkit-getting-started',
+    title: 'Getting started with BriefKit',
+    type: 'How-to · HowTo',
+    query: 'how to create a content brief fast',
+    body: 'Paste a keyword or a competitor URL, add your target audience, and pick a depth (Quick / Standard / Deep). BriefKit returns an H2/H3 outline, 5–8 people-also-ask questions, 3–5 sources to cite, and a one-line answer hook. Free tier covers 3 runs/day; Pro adds volume, export, and an audit log. No code, no setup.',
+    refs: [OPENAI],
+  },
+]
+
+const faqs = [
+  {
+    "question": "What is a GEO-ready content brief?",
+    "answer": "A GEO-ready content brief is a pre-write plan for the ChatGPT/Perplexity era: an H2/H3 outline, the people-also-ask questions a buyer asks, authoritative sources to cite, and a one-line answer hook an AI engine can lift into its reply. It makes a page citable by structure, not luck."
+  },
+  {
+    "question": "Does BriefKit guarantee my content gets cited?",
+    "answer": "No. BriefKit produces a structured brief — outline, questions, sources, and an answer hook. Whether an LLM cites the finished page depends on your content quality, authority, and accuracy. The brief improves the odds by structure; it does not guarantee a citation."
+  },
+  {
+    "question": "Are the suggested sources verified?",
+    "answer": "No. BriefKit proposes sources as suggestions. You should confirm each is real, current, and appropriate before citing it. Treat the source list as a starting point for your own check, not a verified reference list."
+  },
+  {
+    "question": "How is this different from a generic outline tool?",
+    "answer": "A generic outline tool gives headings. BriefKit adds the GEO layer: people-also-ask questions, citable sources, and an answer hook tuned for AI engines — the parts an SEO outline usually omits but that make a page quotable."
+  },
+  {
+    "question": "Can BriefKit replace a content writer?",
+    "answer": "No. BriefKit is decision-support for the planning stage — it speeds up briefs, not the writing, editing, or judgment. A human still writes the draft, verifies sources, and owns the final quality."
+  },
+  {
+    "question": "Do I need a keyword to start?",
+    "answer": "No. A topic or a competitor URL is enough. BriefKit turns either into a brief with outline, target questions, and sources to cite, so you can start before you have settled on a keyword."
+  }
+] as { question: string; answer: string }[]
+
+const howToBlocks = [
+  {
+    "name": "How to write content AI engines cite",
+    "steps": [
+      {
+        "name": "Overview",
+        "text": "Start from the questions buyers ask, answer each directly and early, cite named authoritative sources, and lead with a crisp answer hook an AI can quote. BriefKit proposes the hook, outline, and questions so the draft is citable by structure."
+      }
+    ]
+  },
+  {
+    "name": "Why citable sources belong in every brief",
+    "steps": [
+      {
+        "name": "Overview",
+        "text": "An LLM is more likely to cite a page that itself cites named, authoritative sources. A brief that lists 3–5 sources to cite turns a vague post into one an engine can attribute — but you still verify each source is real and current."
+      }
+    ]
+  },
+  {
+    "name": "Getting started with BriefKit",
+    "steps": [
+      {
+        "name": "Overview",
+        "text": "Paste a keyword or competitor URL, add your audience, pick a depth. BriefKit returns an outline, 5–8 questions, 3–5 sources, and an answer hook. Free tier covers 3 runs/day; Pro adds volume, export, and audit log."
+      }
+    ]
+  }
+] as { name: string; steps: { name: string; text: string }[] }[]
+
+export default function BlogPage() {
+  return (
+    <Layout>
+      <Head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(buildFaqJsonLd(faqs)) }}
+        />
+        {howToBlocks.map((block, i) => (
+          <script
+            key={`howto-${i}`}
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(buildHowToJsonLd(block.name, block.steps)),
+            }}
+          />
+        ))}
+
+        <title>{`${PRODUCT.name} — Blog`}</title>
+        <meta name="description" content="Definitional and how-to posts on GEO-ready content briefs, writing content AI engines cite, citable sources, and the answer hook — the questions content and SEO teams ask before they brief a page." />
+              {posts.map((p, i) => (
+          <script
+            key={`article-${i}`}
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'Article',
+                headline: p.title,
+                description: p.body,
+                inLanguage: 'en',
+              }),
+            }}
+          />
+        ))}
+      </Head>
+      <div className="max-w-3xl">
+        <div className="text-xs font-bold tracking-widest uppercase text-indigo-600 mb-3">Blog · GEO</div>
+        <h1 className="text-4xl font-extrabold tracking-tight mb-4">GEO content briefs, explained</h1>
+        <p className="text-lg text-slate-600 mb-10">Own the definitional queries teams ask before they brief a page for the ChatGPT / Perplexity era.</p>
+
+        <div className="space-y-8">
+          {posts.map((p) => (
+            <article key={p.slug} className="border-b border-slate-200 pb-8">
+              <div className="text-xs font-semibold text-indigo-600 mb-1">{p.type}</div>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900">{p.title}</h2>
+              <p className="text-sm text-slate-600 mb-2"><span className="font-semibold">Target query:</span> {p.query}</p>
+              <p className="text-slate-700 leading-relaxed">{p.body}</p>
+              <p className="text-xs text-slate-400 mt-3">refs: {p.refs.join(' · ')}</p>
+            </article>
+          ))}
+        </div>
+
+        <h2 className="text-2xl font-bold mt-14 mb-2 text-slate-900">Deep-dives (GEO)</h2>
+        <p className="text-sm text-slate-500 mb-6">Long-form, cited explainers. Each carries a decision-support disclaimer on methodology limits.</p>
+        <div className="space-y-5">
+          {geoPosts.map((p) => (
+            <div key={p.slug} className="border-b border-slate-200 pb-5">
+              <h3 className="text-xl font-semibold">
+                <a href={`/blog/${p.slug}`} className="text-indigo-700 hover:underline">{p.title}</a>
+              </h3>
+              <p className="text-sm text-slate-600 mt-1">{p.description}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-xs text-slate-400 mt-8">Publish + syndicate per gtm-launch (IH + GEO indexes). Each post carries authoritative refs.</p>
+      </div>
+    </Layout>
+  )
+}

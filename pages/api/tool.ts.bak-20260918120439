@@ -1,0 +1,217 @@
+import type { NextApiRequest, NextApiResponse } from 'next'
+import { PRODUCT } from '../../lib/product'
+import { AI_QUOTAS, checkAndConsumeQuota, defaultModel, resolvePlan } from '../../lib/aiGateway'
+import { getByokKey } from '../../lib/byokStore'
+import { createRun, loadRun, saveRun, nextStep, completeRun, getNextStep, getStepLabel, StepId, RunState } from '../../lib/pipeline'
+import { writeAudit } from '../../lib/auditLog'
+
+const RULESET_VERSION = 'briefkit-pipeline@2026-09-17'
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
+  let inputs: Record<string, string> = {}
+  let runId: string = ''
+  let currentStep: StepId = 'brief'
+  let source: 'rule-based' | 'model-assisted' = 'model-assisted'
+
+  try {
+    const body = (req.body || {}) as {
+      inputs?: Record<string, string>
+      useMock?: boolean
+      runId?: string
+      step?: StepId
+      action?: 'advance' | 'confirm'
+      useByok?: boolean
+      plan?: 'free' | 'pro' | 'enterprise'
+    }
+    inputs = body.inputs || {}
+    const useMock = !!body.useMock
+    runId = body.runId || ''
+    currentStep = body.step || 'brief'
+    const action = body.action || 'advance'
+
+    const plan = resolvePlan(req)
+    const slug = String((PRODUCT as any).slug || 'product')
+
+    const wantByok = plan === 'enterprise'
+    const byokKey = wantByok ? getByokKey(slug) : null
+    const usingByok = !!byokKey
+    const platformKey = process.env.OPENAI_API_KEY || ''
+    const apiKey = byokKey || platformKey
+    const hasKey = !!apiKey
+
+    const model = process.env.OPENAI_MODEL || defaultModel()
+
+    if (useMock) {
+      let run: RunState
+      if (runId) {
+        const existing = loadRun(runId)
+        run = existing || createRun(inputs)
+      } else {
+        run = createRun(inputs)
+      }
+      runId = run.runId
+      const result = 'Demo mode — not live AI'
+      // Demo closes the L1 loop with completeRun (create → save → complete)
+      const done = completeRun(
+        { ...run, artifacts: { ...run.artifacts, [currentStep]: result, demo: true } },
+        {},
+      )
+      saveRun(done)
+
+      writeAudit({
+        timestamp: new Date().toISOString(),
+        runId,
+        step: currentStep,
+        action: 'mock',
+        model: 'demo',
+        source: 'rule-based',
+      })
+
+      return res.status(200).json({
+        result,
+        runId,
+        demo: true,
+        mock: true,
+        step: done.step,
+        status: done.status,
+        stepLabel: getStepLabel(done.step),
+        rulesetVersion: RULESET_VERSION,
+        ruleHits: [],
+      })
+    }
+
+    if (!hasKey) {
+      return res.status(503).json({
+        error: 'AI is not configured. Add OPENAI_API_KEY or enable Demo mode.',
+        code: 'AI_NOT_CONFIGURED',
+        demo: false,
+      })
+    }
+
+    const quotaCheck = checkAndConsumeQuota(slug, plan)
+    if (!quotaCheck.ok) {
+      writeAudit({
+        timestamp: new Date().toISOString(),
+        runId,
+        step: currentStep,
+        action: 'quota_check',
+        quota: {
+          plan: quotaCheck.plan,
+          daily: quotaCheck.daily,
+          monthly: quotaCheck.monthly,
+          limit: quotaCheck.dailyLimit,
+        },
+        source: 'rule-based',
+      })
+      return res.status(429).json({
+        error: 'Fair use limit reached. Upgrade or wait for reset.',
+        code: 'QUOTA_EXCEEDED',
+        demo: false,
+      })
+    }
+
+    let run: RunState
+    if (runId) {
+      const existing = loadRun(runId)
+      if (!existing) {
+        return res.status(404).json({ error: 'Run not found', code: 'RUN_NOT_FOUND' })
+      }
+      run = existing
+    } else {
+      run = createRun(inputs)
+      runId = run.runId
+      saveRun(run)
+    }
+
+    if (currentStep !== run.step) {
+      return res.status(400).json({
+        error: 'Invalid step transition: expected ' + run.step + ', received ' + currentStep,
+        code: 'INVALID_STEP',
+      })
+    }
+
+    writeAudit({
+      timestamp: new Date().toISOString(),
+      runId,
+      step: currentStep,
+      action: 'start',
+      model,
+      source: 'model-assisted',
+    })
+
+    const inputText = PRODUCT.inputs
+      .map((f) => `${f.label}: ${inputs[f.key] || '(not provided)'}`)
+      .join('\n')
+
+        const text = await chatWithFallback(apiKey, process.env.OPENAI_BASE_URL || 'https://integrate.api.nvidia.com/v1', [
+      { role: 'system', content: PRODUCT.systemPrompt },
+      { role: 'user', content: inputText },
+    ], { model, temperature: 0.7, maxTokens: AI_QUOTAS[plan].maxTokens })
+
+    if (!text.trim()) throw new Error('Empty AI response')
+
+    const withArtifact: RunState = {
+      ...run,
+      artifacts: { ...run.artifacts, [currentStep]: text },
+      updatedAt: new Date().toISOString(),
+    }
+
+    let nextRun: RunState
+    // L1 close: confirm on last step, or no further step available → completeRun
+    const atLast = getNextStep(run.step) === null
+    if ((action === 'confirm' && run.step === 'human_confirm') || atLast) {
+      nextRun = completeRun(withArtifact)
+    } else {
+      try {
+        nextRun = nextStep(withArtifact, action)
+      } catch {
+        nextRun = completeRun(withArtifact)
+      }
+    }
+    saveRun(nextRun)
+
+    writeAudit({
+      timestamp: new Date().toISOString(),
+      runId,
+      step: currentStep,
+      action: 'complete',
+      model,
+      source: 'model-assisted',
+    })
+
+    return res.status(200).json({
+      result: text,
+      runId,
+      step: nextRun.step,
+      status: nextRun.status,
+      stepLabel: getStepLabel(nextRun.step),
+      rulesetVersion: RULESET_VERSION,
+      ruleHits: [],
+      demo: false,
+      mock: false,
+      model,
+      source: 'Model-assisted',
+    })
+
+  } catch (e: any) {
+    writeAudit({
+      timestamp: new Date().toISOString(),
+      runId,
+      step: currentStep,
+      action: 'error',
+      error: e?.message || 'unknown error',
+      source: 'model-assisted',
+    })
+
+    return res.status(502).json({
+      error: 'AI service call failed: ' + (e?.message || 'unknown error'),
+      code: 'AI_UPSTREAM_FAILED',
+      degraded: true,
+      demo: false,
+      mock: false,
+      runId,
+    })
+  }
+}

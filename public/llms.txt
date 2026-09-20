@@ -1,0 +1,53 @@
+# BriefKit - llms.txt
+
+> LLM-readable manifest (https://llmstxt.org). Features-only; no fabricated traffic or unverified payment claims.
+
+## Name & positioning
+- Product name: BriefKit
+- One-line value: BriefKit turns a topic or competitor URL into an SEO + GEO content brief — outline, target questions, sources to cite, and an AI-answer hook for the ChatGPT/Perplexity era.
+- Domain: https://briefkit.lxsaihub.com/
+- Language: English (en)
+
+## Domain context (verified primary sources)
+- Google Search Central — helpful content: https://developers.google.com/search/docs/fundamentals/creating-helpful-content
+- llms.txt: https://llmstxt.org
+
+## FAQ
+Q1. What is BriefKit?
+A1. A brief tool that turns a keyword or URL into outline, PAA questions, sources, and a GEO answer hook.
+Q2. What is in the brief?
+A2. H2/H3 outline, people-also-ask questions, authority sources, and an AI-answer hook.
+Q3. How does it help GEO?
+A3. It structures content to be citable by answer engines, not only ranked in classic search.
+Q4. Can I use a competitor URL?
+A4. Yes. Paste a URL to reverse-build a brief from that page’s structure.
+Q5. Who is it for?
+A5. Content and SEO teams writing for search and LLM citation.
+Q6. Does it guarantee rankings?
+A6. No. It is a writing plan — you still add firsthand value.
+
+## Key pages
+- Home: https://briefkit.lxsaihub.com/
+- Blog index: https://briefkit.lxsaihub.com/blog
+- https://briefkit.lxsaihub.com/blog/seo-brief-plus-geo-hook-2026.html
+- https://briefkit.lxsaihub.com/blog/competitor-url-to-brief-workflow-2026.html
+- This manifest: https://briefkit.lxsaihub.com/llms.txt
+
+## Pricing
+- Plans may appear on the product site. GEO assets omit unverified checkout product IDs.
+
+## Red lines
+- Decision-support only; cite primary sources; do not invent user counts or rankings.
+
+## Contact
+- Open the app: https://briefkit.lxsaihub.com/
+
+## Blog posts
+- https://briefkit.lxsaihub.com/blog/briefkit-vs-doing-it-manually
+- https://briefkit.lxsaihub.com/blog/common-content-brief-mistakes
+- https://briefkit.lxsaihub.com/blog/content-brief-checklist
+- https://briefkit.lxsaihub.com/blog/content-marketing-trends-2026-ai-search
+- https://briefkit.lxsaihub.com/blog/get-started-briefkit
+- https://briefkit.lxsaihub.com/blog/optimize-for-chatgpt-perplexity
+- https://briefkit.lxsaihub.com/blog/what-is-a-geo-content-brief
+- https://briefkit.lxsaihub.com/blog/write-content-ai-engines-cite

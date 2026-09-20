@@ -1,0 +1,60 @@
+import fs from 'fs'
+import path from 'path'
+
+export interface AuditEntry {
+  timestamp: string
+  runId: string
+  step: string
+  action: 'start' | 'complete' | 'error' | 'mock' | 'quota_check'
+  model?: string
+  quota?: { plan: string; daily: number; monthly: number; limit: number }
+  error?: string
+  durationMs?: number
+  tokenUsage?: { prompt: number; completion: number }
+  source: 'rule-based' | 'model-assisted'
+}
+
+function logDir(): string {
+  const dir = path.join(process.cwd(), '.data', 'audit')
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  return dir
+}
+
+function logFile(): string {
+  const now = new Date()
+  const name = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}.jsonl`
+  return path.join(logDir(), name)
+}
+
+export function writeAudit(entry: AuditEntry): void {
+  const p = logFile()
+  const line = JSON.stringify(entry) + '\n'
+  fs.appendFileSync(p, line, 'utf8')
+}
+
+export function getAuditForRun(runId: string): AuditEntry[] {
+  const dir = logDir()
+  const entries: AuditEntry[] = []
+  try {
+    const files = fs.readdirSync(dir).filter(f => f.endsWith('.jsonl'))
+    for (const f of files) {
+      const p = path.join(dir, f)
+      const content = fs.readFileSync(p, 'utf8')
+      for (const line of content.split('\n').filter(Boolean)) {
+        try {
+          const entry = JSON.parse(line) as AuditEntry
+          if (entry.runId === runId) {
+            entries.push(entry)
+          }
+        } catch {
+          continue
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return entries.sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+}
+export const writeAudit = audit
+export const appendAudit = audit
